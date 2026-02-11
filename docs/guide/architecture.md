@@ -159,5 +159,5 @@ Nightcord → api.nightcord.de5.net/sekai/stickers/autocomplete.json
 ## 下一步
 
 - [快速开始](/guide/getting-started) - 开始使用
-- [SEKAI Pass 集成](/guide/sekai-pass) - 接入 SSO
-- [API 网关使用](/guide/api-gateway) - 使用统一 API
+- [项目总览](/projects/overview) - 查看所有项目
+- [API 参考](/api/gateway) - API 网关文档

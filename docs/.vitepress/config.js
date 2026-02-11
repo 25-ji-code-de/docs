@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'SEKAI Ecosystem',
+  title: 'SEKAI Platform',
   description: '25時、コードで。',
   lang: 'zh-CN',
 

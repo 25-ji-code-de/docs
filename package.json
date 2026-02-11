@@ -1,7 +1,7 @@
 {
   "name": "sekai-docs",
   "version": "1.0.0",
-  "description": "SEKAI Ecosystem Documentation",
+  "description": "SEKAI Platform Documentation",
   "type": "module",
   "scripts": {
     "docs:dev": "vitepress dev docs",
