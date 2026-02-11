@@ -8,7 +8,14 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
-  "keywords": ["sekai", "nightcord", "documentation"],
+  "keywords": [
+    "sekai",
+    "nightcord",
+    "documentation"
+  ],
   "author": "bili_47177171806",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
 }
