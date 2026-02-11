@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: SEKAI Ecosystem
+  name: SEKAI Platform
   text: 25時、コードで。
   tagline: 现代化的 Web 应用生态系统
   actions:

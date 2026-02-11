@@ -1,6 +1,6 @@
-# SEKAI Ecosystem Documentation
+# SEKAI Platform Documentation
 
-Official documentation for the SEKAI Ecosystem.
+Official documentation for the SEKAI Platform.
 
 ## 🌐 Live Site
 

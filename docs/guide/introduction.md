@@ -1,10 +1,10 @@
 # 介绍
 
-欢迎来到 SEKAI 生态文档！
+欢迎来到 SEKAI Platform 文档！
 
-## 什么是 SEKAI 生态？
+## 什么是 SEKAI Platform？
 
-SEKAI 生态是一个现代化的 Web 应用生态系统，灵感来自《Project SEKAI》中的"25時、Nightcordで。"组合。
+SEKAI Platform（SEKAI 生态）是一个现代化的 Web 应用生态系统，灵感来自《Project SEKAI》中的"25時、Nightcordで。"组合。
 
 生态包含多个相互协作的项目：
 
