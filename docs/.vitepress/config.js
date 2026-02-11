@@ -12,7 +12,8 @@ export default defineConfig({
       { text: '首页', link: '/' },
       { text: '指南', link: '/guide/introduction' },
       { text: 'API', link: '/api/gateway' },
-      { text: '项目', link: '/projects/overview' }
+      { text: '项目', link: '/projects/overview' },
+      { text: '法律', link: '/legal/' }
     ],
 
     sidebar: {
@@ -53,6 +54,35 @@ export default defineConfig({
             { text: 'SEKAI Pass', link: '/projects/sekai-pass' },
             { text: 'Nako AI', link: '/projects/nako' },
             { text: 'Gateway', link: '/projects/gateway' }
+          ]
+        }
+      ],
+      '/legal/': [
+        {
+          text: '法律文档',
+          items: [
+            { text: '总览', link: '/legal/' }
+          ]
+        },
+        {
+          text: 'SEKAI Pass',
+          items: [
+            { text: '隐私政策', link: '/legal/complete/privacy-sekai-pass' },
+            { text: '用户服务协议', link: '/legal/complete/terms-sekai-pass' }
+          ]
+        },
+        {
+          text: 'Nightcord',
+          items: [
+            { text: '隐私政策', link: '/legal/complete/privacy-nightcord' },
+            { text: '用户服务协议', link: '/legal/complete/terms-nightcord' }
+          ]
+        },
+        {
+          text: '25時作業風景',
+          items: [
+            { text: '隐私政策', link: '/legal/complete/privacy-25ji' },
+            { text: '用户服务协议', link: '/legal/complete/terms-25ji' }
           ]
         }
       ]
