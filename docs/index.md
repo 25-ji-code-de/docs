@@ -20,54 +20,56 @@ features:
 
   - icon: ⚡
     title: 边缘计算
-    details: 全部部署在 Cloudflare Workers，全球分布式边缘节点，极速响应
+    details: 全部部署在 Cloudflare Workers / Pages，全球分布式边缘节点
 
   - icon: 🎯
     title: 统一网关
-    details: API Gateway 提供统一入口，多层缓存策略，完善的监控和日志
+    details: API Gateway 提供统一入口，多层缓存，用户同步与成就
 
   - icon: 🤖
     title: AI 集成
-    details: Nako AI 基于 Qwen 3 30B，支持向量搜索和智能表情推荐
+    details: Nako AI 多人格对话 + 贴纸语义推荐，需 Pass 认证
 
   - icon: 💬
     title: 实时通信
-    details: Nightcord 聊天室基于 WebSocket，事件驱动架构，模块化设计
+    details: Nightcord 聊天室 WebSocket + SEKAI 标记语言 + Storage v2
 
   - icon: 📚
-    title: 开源友好
-    details: 所有项目 MIT License，完善的文档和示例，欢迎贡献
+    title: 跨仓一致
+    details: 客户端约定与文档协同；许可证以各仓库 LICENSE 为准
 ---
 
 ## 快速链接
 
-- [Nightcord 聊天室](https://nightcord.de5.net) - 实时聊天应用
-- [25時作業風景](https://25ji.nightcord.de5.net) - 沉浸式学习工具
-- [SEKAI Pass](https://id.nightcord.de5.net) - SSO 认证系统
-- [API 网关](https://api.nightcord.de5.net) - 统一 API 入口
+- [Nightcord 聊天室](https://nightcord.de5.net)
+- [25時作業風景](https://25ji.nightcord.de5.net)
+- [SEKAI Hub](https://hub.nightcord.de5.net)
+- [SEKAI Pass](https://id.nightcord.de5.net)
+- [API 网关](https://api.nightcord.de5.net)
+- [贴纸图鉴](https://sticker.nightcord.de5.net)
 
 ## 技术栈
 
 - **运行平台**: Cloudflare Workers, Pages
-- **数据存储**: D1, KV, R2, Vectorize
+- **数据存储**: D1, KV, R2 / OSS, Vectorize
 - **编程语言**: TypeScript, JavaScript
-- **框架**: Hono, Lucia Auth
-- **AI 模型**: Qwen 3 30B, Qwen 3 Embedding
+- **框架**: Hono, Lucia Auth（Pass）
+- **AI**: Workers AI / 可配置上游 LLM
 
 ## 生态架构
 
 ```
 用户应用层
-├─ Nightcord (聊天室)
-├─ 25ji (学习工具)
-└─ 未来项目...
+├─ Nightcord · 25ji · Hub · Stickers / Maker
 
 服务层
 ├─ SEKAI Pass (SSO)
-└─ Nako AI (聊天机器人)
+└─ Nako AI
 
 基础设施层
-├─ API Gateway (统一入口)
-├─ Assets CDN (静态资源)
-└─ Stickers (贴纸服务)
+├─ API Gateway
+├─ Storage Worker (storage.* / r2.*)
+└─ Stickers CDN
 ```
+
+详见 [架构总览](/guide/architecture) 与 [前端客户端约定](/guide/client-conventions)。

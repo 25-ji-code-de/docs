@@ -44,30 +44,42 @@ https://your-app.com/callback?code=AUTH_CODE&state=STATE
 
 ```http
 POST /oauth/token
-Content-Type: application/json
+Content-Type: application/x-www-form-urlencoded
 ```
 
-**请求体：**
+**表单字段（authorization_code）：**
+
+| 字段 | 说明 |
+|------|------|
+| `grant_type` | `authorization_code` |
+| `code` | 授权码 |
+| `redirect_uri` | 与授权请求一致的回调 |
+| `client_id` | 客户端 ID |
+| `code_verifier` | PKCE verifier（公共客户端必需） |
+
+**表单字段（refresh_token）：**
+
+| 字段 | 说明 |
+|------|------|
+| `grant_type` | `refresh_token` |
+| `refresh_token` | 刷新令牌 |
+| `client_id` | 客户端 ID |
+
+```bash
+curl -X POST https://id.nightcord.de5.net/oauth/token \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=authorization_code&code=…&redirect_uri=…&client_id=…&code_verifier=…'
+```
+
+**成功响应示例：**
 
 ```json
 {
-  "grant_type": "authorization_code",
-  "code": "授权码",
-  "redirect_uri": "回调 URL",
-  "client_id": "客户端 ID",
-  "client_secret": "客户端密钥（服务端流程）",
-  "code_verifier": "PKCE verifier（PKCE 流程）"
-}
-```
-
-**响应：**
-
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "…",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "id_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refresh_token": "…",
+  "id_token": "…"
 }
 ```
 
@@ -80,55 +92,43 @@ GET /oauth/userinfo
 Authorization: Bearer {access_token}
 ```
 
-**响应：**
+**响应（字段因 scope / 实现略有差异）：**
 
 ```json
 {
   "sub": "user_123456",
+  "preferred_username": "mafuyu",
   "username": "mafuyu",
+  "name": "朝比奈真冬",
+  "display_name": "朝比奈真冬",
   "email": "mafuyu@example.com",
-  "avatar": "https://assets.nightcord.de5.net/avatars/mafuyu.png",
-  "created_at": "2026-01-01T00:00:00Z"
+  "picture": "https://…/avatar.png",
+  "avatar_url": "https://…/avatar.png",
+  "bio": "……"
 }
 ```
+
+前端显示名优先级见 25ji `getDisplayName()`：`display_name → name → preferred_username → username → email`。
 
 ### 刷新 Token
 
-刷新访问令牌（规划中）。
-
-```http
-POST /oauth/token
-Content-Type: application/json
-```
-
-**请求体：**
-
-```json
-{
-  "grant_type": "refresh_token",
-  "refresh_token": "刷新令牌",
-  "client_id": "客户端 ID",
-  "client_secret": "客户端密钥"
-}
-```
+使用同一 token 端点，`grant_type=refresh_token`，`Content-Type: application/x-www-form-urlencoded`（见上表）。Pass 支持 refresh token 轮换；客户端应 single-flight 刷新。
 
 ### 撤销 Token
 
-撤销访问令牌（规划中）。
+RFC 7009 端点已实现：
 
 ```http
 POST /oauth/revoke
-Content-Type: application/json
-Authorization: Bearer {access_token}
+Content-Type: application/x-www-form-urlencoded
 ```
 
-**请求体：**
+| 字段 | 说明 |
+|------|------|
+| `token` | access 或 refresh token |
+| `token_type_hint` | 可选 `access_token` / `refresh_token` |
 
-```json
-{
-  "token": "访问令牌"
-}
-```
+未知/无效 token 仍返回 **200**（符合 RFC 7009）。公共 SPA 登出时也应清理本地 storage。
 
 ## Scope
 

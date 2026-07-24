@@ -1,363 +1,167 @@
 # Nako AI API
 
-Nako AI 是基于 Cloudflare Workers AI 的智能助手，支持上下文记忆和向量搜索。
+Nako 是 SEKAI 生态的对话与贴纸推荐服务，部署在 Cloudflare Workers。
 
 ## 基础信息
 
-- **Base URL**: `https://nako.nightcord.de5.net`
-- **模型**: Qwen 3 30B
-- **认证**: 无需认证（公开 API）
+| 项 | 值 |
+|----|-----|
+| Base URL | `https://nako.nightcord.de5.net` |
+| 认证 | **必需** `Authorization: Bearer <SEKAI Pass access_token>` |
+| 公开 | `GET /` · `GET /health`（无认证） |
+
+模型与 endpoint 可按人设配置（Workers AI 或上游 OpenAI 兼容 API）。
 
 ## 端点
 
+### 健康检查
+
+```http
+GET /health
+```
+
+```json
+{ "service": "nako", "status": "ok", "version": "1.0.0", "routes": ["/api/chat", "/api/recommend"] }
+```
+
 ### 聊天
 
-与 Nako AI 对话。
-
 ```http
-POST /api/chat
+POST /api/chat?persona=nako
+Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-**请求体：**
+**Query**
+
+| 参数 | 说明 |
+|------|------|
+| `persona` | 可选，默认 nako。如 `asagi` / `miku` / `yui` 等 |
+
+**Body**
 
 ```json
 {
-  "message": "你好，Nako！",
-  "userId": "user123",
+  "userId": "display-name-or-id",
+  "message": "今天天气真好啊",
   "history": [
-    {
-      "role": "user",
-      "content": "之前的消息"
-    },
-    {
-      "role": "assistant",
-      "content": "Nako 的回复"
-    }
-  ]
+    { "userId": "Someone", "message": "早上好", "isBot": false },
+    { "userId": "Nako", "message": "哼...早什么早", "isBot": true }
+  ],
+  "stream": false
 }
 ```
 
-**参数说明：**
-
-| 参数 | 类型 | 必需 | 说明 |
+| 字段 | 类型 | 必需 | 限制 |
 |------|------|------|------|
-| `message` | string | 是 | 用户消息 |
-| `userId` | string | 是 | 用户 ID（用于记忆） |
-| `history` | array | 否 | 对话历史 |
+| `userId` | string | 是 | ≤128 |
+| `message` | string | 是 | 非空，≤2000 |
+| `history` | array | 否 | ≤50 条，每条 message ≤2000 |
+| `stream` | boolean | 否 | 默认 false |
 
-**响应：**
-
-```json
-{
-  "reply": "你好！我是 Nako，很高兴见到你！",
-  "conversationId": "conv_123456"
-}
-```
-
-### 流式聊天
-
-流式返回 Nako 的回复。
-
-```http
-POST /api/chat/stream
-Content-Type: application/json
-```
-
-**请求体：** 同 `/api/chat`
-
-**响应：** Server-Sent Events (SSE)
-
-```
-data: {"type":"start","conversationId":"conv_123456"}
-
-data: {"type":"token","content":"你"}
-
-data: {"type":"token","content":"好"}
-
-data: {"type":"done"}
-```
-
-### 搜索记忆
-
-搜索 Nako 的记忆（向量搜索）。
-
-```http
-POST /api/memory/search
-Content-Type: application/json
-```
-
-**请求体：**
-
-```json
-{
-  "query": "关于音乐的对话",
-  "userId": "user123",
-  "limit": 5
-}
-```
-
-**响应：**
-
-```json
-{
-  "results": [
-    {
-      "content": "我喜欢听 Project SEKAI 的音乐",
-      "timestamp": "2026-02-11T10:00:00Z",
-      "score": 0.95
-    }
-  ]
-}
-```
-
-### 清除记忆
-
-清除用户的对话记忆。
-
-```http
-DELETE /api/memory/{userId}
-```
-
-**响应：**
+**成功（非流式）**
 
 ```json
 {
   "success": true,
-  "message": "Memory cleared"
+  "response": "哼,天气好又怎样...[stamp0004]",
+  "usage": {
+    "promptTokens": 411,
+    "completionTokens": 187,
+    "totalTokens": 598
+  },
+  "reasoningContent": "可选"
 }
 ```
 
-## 使用示例
+贴纸推荐（若绑定 Vectorize）会在回复末尾插入 `[assetbundleName]`。
 
-### JavaScript
-
-```javascript
-// 基础对话
-async function chatWithNako(message, userId) {
-  const response = await fetch('https://nako.nightcord.de5.net/api/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message,
-      userId,
-      history: []
-    })
-  });
-
-  const data = await response.json();
-  return data.reply;
-}
-
-// 流式对话
-async function streamChatWithNako(message, userId, onToken) {
-  const response = await fetch('https://nako.nightcord.de5.net/api/chat/stream', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message,
-      userId
-    })
-  });
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    const chunk = decoder.decode(value);
-    const lines = chunk.split('\n');
-
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = JSON.parse(line.slice(6));
-        if (data.type === 'token') {
-          onToken(data.content);
-        }
-      }
-    }
-  }
-}
-
-// 使用
-const reply = await chatWithNako('你好', 'user123');
-console.log(reply);
-
-// 流式使用
-await streamChatWithNako('讲个故事', 'user123', (token) => {
-  process.stdout.write(token);
-});
-```
-
-### Python
-
-```python
-import requests
-
-# 基础对话
-def chat_with_nako(message, user_id):
-    response = requests.post('https://nako.nightcord.de5.net/api/chat', json={
-        'message': message,
-        'userId': user_id,
-        'history': []
-    })
-    return response.json()['reply']
-
-# 使用
-reply = chat_with_nako('你好', 'user123')
-print(reply)
-```
-
-### cURL
-
-```bash
-# 基础对话
-curl -X POST https://nako.nightcord.de5.net/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "你好",
-    "userId": "user123",
-    "history": []
-  }'
-
-# 搜索记忆
-curl -X POST https://nako.nightcord.de5.net/api/memory/search \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "音乐",
-    "userId": "user123",
-    "limit": 5
-  }'
-
-# 清除记忆
-curl -X DELETE https://nako.nightcord.de5.net/api/memory/user123
-```
-
-## 对话历史
-
-Nako 支持多轮对话，通过 `history` 参数传递对话历史：
-
-```javascript
-const history = [
-  { role: 'user', content: '我叫真冬' },
-  { role: 'assistant', content: '你好，真冬！' },
-  { role: 'user', content: '我的名字是什么？' }
-];
-
-const response = await fetch('https://nako.nightcord.de5.net/api/chat', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    message: '我的名字是什么？',
-    userId: 'user123',
-    history
-  })
-});
-
-// Nako 会回复: "你的名字是真冬。"
-```
-
-## 向量记忆
-
-Nako 使用 Cloudflare Vectorize 存储对话记忆，支持语义搜索：
-
-```javascript
-// 搜索关于音乐的对话
-const response = await fetch('https://nako.nightcord.de5.net/api/memory/search', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    query: '音乐',
-    userId: 'user123',
-    limit: 5
-  })
-});
-
-const { results } = await response.json();
-results.forEach(result => {
-  console.log(`[${result.score.toFixed(2)}] ${result.content}`);
-});
-```
-
-## 错误处理
-
-API 使用标准 HTTP 状态码：
-
-- `200` - 成功
-- `400` - 请求参数错误
-- `429` - 速率限制
-- `500` - 服务器错误
-
-**错误响应：**
+**失败**
 
 ```json
 {
-  "error": true,
-  "message": "Invalid request",
-  "details": "Missing required field: message"
-}
-```
-
-## 速率限制
-
-| 端点 | 限制 |
-|------|------|
-| `/api/chat` | 20 次/分钟/userId |
-| `/api/chat/stream` | 10 次/分钟/userId |
-| `/api/memory/search` | 50 次/分钟/userId |
-
-超过限制返回 `429 Too Many Requests`。
-
-## 最佳实践
-
-### 1. 管理对话历史
-
-保留最近 10 条消息，避免上下文过长：
-
-```javascript
-function trimHistory(history, maxLength = 10) {
-  return history.slice(-maxLength);
-}
-```
-
-### 2. 错误重试
-
-网络错误时自动重试：
-
-```javascript
-async function chatWithRetry(message, userId, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await chatWithNako(message, userId);
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-    }
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
   }
 }
 ```
 
-### 3. 流式显示
+常见 `code`：`UNAUTHORIZED` · `INVALID_JSON` · `INVALID_REQUEST` · `INVALID_PERSONA` · `INTERNAL_ERROR`。
 
-使用流式 API 提升用户体验：
+### 流式聊天
+
+同一路径，`stream: true`。响应 `Content-Type: text/event-stream`，OpenAI 风格 SSE chunk；结束前可能追加贴纸 chunk，最后 `data: [DONE]`。
+
+### 贴纸推荐
+
+```http
+GET /api/recommend?prompt=开心&topK=5
+POST /api/recommend
+Authorization: Bearer <token>
+```
+
+POST body：
+
+```json
+{
+  "prompt": "开心",
+  "topK": 5,
+  "excludeRecent": ["最近消息1", "含[stamp0001]的消息"]
+}
+```
+
+```json
+{
+  "success": true,
+  "stickers": [
+    { "assetbundleName": "stamp0004", "name": "…", "score": 0.82 }
+  ],
+  "query": "开心"
+}
+```
+
+`prompt` 最长 500；`topK` 1–20。Vectorize 未配置时返回 503 `VECTORIZE_UNAVAILABLE`。
+
+## 使用统计
+
+成功生成后，Nako 向 Gateway 所用 D1（`DB`）写入：
+
+- `user_activities.event_type` = `{persona}_conversation`
+- `user_stats.metric_name` = `{persona}_conversations`
+
+Hub 仪表盘会汇总所有 `*_conversations`。
+
+## 示例
+
+```bash
+curl -X POST 'https://nako.nightcord.de5.net/api/chat?persona=nako' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"K","message":"你好","history":[],"stream":false}'
+```
 
 ```javascript
-let fullReply = '';
-
-await streamChatWithNako('讲个故事', 'user123', (token) => {
-  fullReply += token;
-  updateUI(fullReply); // 实时更新 UI
+const res = await fetch('https://nako.nightcord.de5.net/api/chat?persona=nako', {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    userId: 'K',
+    message: '你好',
+    history: [],
+    stream: false,
+  }),
 });
+const data = await res.json();
+if (data.success) console.log(data.response);
 ```
 
 ## 相关链接
 
-- [Nako AI 项目详情](/projects/nako)
-- [GitHub 仓库](https://github.com/25-ji-code-de/nako)
-- [Nightcord 集成示例](https://github.com/25-ji-code-de/nightcord)
+- [GitHub](https://github.com/25-ji-code-de/nako)
+- [前端客户端约定](/guide/client-conventions)
+- [项目详情](/projects/nako)

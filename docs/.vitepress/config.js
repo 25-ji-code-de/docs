@@ -30,7 +30,8 @@ export default defineConfig({
           text: '集成',
           items: [
             { text: 'SEKAI Pass 认证', link: '/guide/sekai-pass' },
-            { text: '使用 API 网关', link: '/guide/api-gateway' }
+            { text: '使用 API 网关', link: '/guide/api-gateway' },
+            { text: '前端客户端约定', link: '/guide/client-conventions' }
           ]
         }
       ],
@@ -51,9 +52,12 @@ export default defineConfig({
             { text: '项目总览', link: '/projects/overview' },
             { text: 'Nightcord', link: '/projects/nightcord' },
             { text: '25時作業風景', link: '/projects/25ji' },
+            { text: 'SEKAI Hub', link: '/projects/hub' },
             { text: 'SEKAI Pass', link: '/projects/sekai-pass' },
             { text: 'Nako AI', link: '/projects/nako' },
-            { text: 'Gateway', link: '/projects/gateway' }
+            { text: 'Gateway', link: '/projects/gateway' },
+            { text: 'Storage Worker', link: '/projects/storage' },
+            { text: 'Stickers', link: '/projects/stickers' }
           ]
         }
       ],
@@ -93,8 +97,8 @@ export default defineConfig({
     ],
 
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2026 bili_47177171806'
+      message: '各项目许可证以仓库 LICENSE 为准。',
+      copyright: 'Copyright © 2026 The 25-ji-code-de Team'
     },
 
     search: {

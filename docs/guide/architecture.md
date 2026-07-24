@@ -1,163 +1,131 @@
 # 架构总览
 
-SEKAI 生态采用三层架构设计，各层职责清晰，松耦合。
+SEKAI 生态采用分层架构设计，各层职责清晰，松耦合。
 
 ## 架构图
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      用户应用层                          │
-├─────────────────────────────────────────────────────────┤
-│  nightcord.de5.net          25ji.nightcord.de5.net     │
-│  (Nightcord 聊天室)          (25時作業風景)             │
-│                                                          │
-│  sekai.nightcord.de5.net    (未来项目...)               │
-│  (SEKAI Hub - 规划中)                                   │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│                       服务层                             │
-├─────────────────────────────────────────────────────────┤
-│  id.nightcord.de5.net       nako.nightcord.de5.net     │
-│  (SEKAI Pass SSO)           (Nako AI 助手)              │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│                    基础设施层                            │
-├─────────────────────────────────────────────────────────┤
-│  api.nightcord.de5.net      assets.nightcord.de5.net   │
-│  (统一 API 网关)             (静态资源 CDN)              │
-│                                                          │
-│  sticker.nightcord.de5.net                              │
-│  (贴纸资源服务)                                          │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                         用户应用层                           │
+├─────────────────────────────────────────────────────────────┤
+│  nightcord.de5.net           25ji.nightcord.de5.net        │
+│  (Nightcord 聊天室)           (25時作業風景)                 │
+│                                                             │
+│  hub.nightcord.de5.net       sticker.nightcord.de5.net     │
+│  (SEKAI Hub 门户)             (贴纸图鉴)                     │
+│                                                             │
+│  st.nightcord.de5.net        (stickers-maker 生成器)        │
+└─────────────────────────────────────────────────────────────┘
+                              ↓ OAuth / Bearer
+┌─────────────────────────────────────────────────────────────┐
+│                          服务层                              │
+├─────────────────────────────────────────────────────────────┤
+│  id.nightcord.de5.net        nako.nightcord.de5.net        │
+│  (SEKAI Pass SSO / OIDC)     (Nako AI 助手)                  │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                        基础设施层                            │
+├─────────────────────────────────────────────────────────────┤
+│  api.nightcord.de5.net       storage.nightcord.de5.net     │
+│  (Gateway: 音乐/同步/统计)    (对象存储上传 + SEKAI v2)       │
+│                                                             │
+│  r2.nightcord.de5.net        assets / sticker CDN          │
+│  (公开媒体 resolve)           (静态资源)                      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## 域名架构
 
 ### 用户入口（应用层）
 
-- `nightcord.de5.net` - Nightcord 聊天室（主应用）
-- `25ji.nightcord.de5.net` - 25時作業風景
-- `sekai.nightcord.de5.net` - SEKAI Hub（规划中）
+| 域名 | 项目 | 说明 |
+|------|------|------|
+| `nightcord.de5.net` | nightcord | 实时聊天（SEKAI 标记语言） |
+| `25ji.nightcord.de5.net` | 25ji-sagyo | 作业陪伴 / 番茄钟 / 音乐 |
+| `hub.nightcord.de5.net` | hub | 生态门户与用户中心 |
+| `sticker.nightcord.de5.net` | stickers | 贴纸图鉴 |
+| `st.nightcord.de5.net` | stickers-maker | 贴纸生成器 |
 
 ### 服务层
 
-- `id.nightcord.de5.net` - SEKAI Pass（SSO 认证）
-- `nako.nightcord.de5.net` - Nako AI 助手
+| 域名 | 项目 | 说明 |
+|------|------|------|
+| `id.nightcord.de5.net` | sekai-pass | SSO / OAuth 2.1 PKCE / OIDC |
+| `nako.nightcord.de5.net` | nako | AI 对话 + 贴纸推荐 |
 
 ### 基础设施层
 
-- `api.nightcord.de5.net` - 统一 API 网关
-- `assets.nightcord.de5.net` - 静态资源 CDN
-- `sticker.nightcord.de5.net` - 贴纸资源
+| 域名 | 项目 | 说明 |
+|------|------|------|
+| `api.nightcord.de5.net` | gateway | 音乐聚合、用户同步、成就、事件 |
+| `storage.nightcord.de5.net` | storage-worker | 上传（legacy + `/v2/upload`） |
+| `r2.nightcord.de5.net` | storage-worker | 公开媒体 `/images|files|stickers/{uuid}` |
+
+## 组件如何协同
+
+```
+前端应用 ──PKCE──► SEKAI Pass (id.*)
+   │                    │
+   │ Bearer token       │ AUTH_DB (D1) 被 gateway / nako 直读校验
+   ▼                    ▼
+gateway (api.*)  ◄── 用户同步 / 统计 / 成就
+nako (nako.*)    ◄── AI 对话（同样 Bearer）
+storage (storage.* / r2.*)  ◄── 文件上传（Nightcord SEKAI v2）
+stickers (sticker.*) ──autocomplete.json──► gateway 代理 / nightcord UI
+```
+
+### 认证
+
+1. 各前端（hub / 25ji / nightcord / stickers-maker）实现 **OAuth 2.1 + PKCE** 客户端。
+2. Token 存本地；access 将过期时 **single-flight refresh**（避免并发刷新打爆 token endpoint）。
+3. gateway / nako 通过 **D1 `AUTH_DB`** 直接校验 `access_tokens`，不二次 HTTP 调 Pass。
+
+### 推荐的客户端约定（跨仓对齐）
+
+| 主题 | 约定 |
+|------|------|
+| PKCE `state` / `code_verifier` | `sessionStorage`（tab 作用域），不要进长期 `localStorage` |
+| access / refresh | `localStorage`，键名可用应用前缀隔离（如 nightcord 的 `sekai_pass_*`） |
+| 刷新窗口 | 过期前 5 分钟刷新；并发共用同一 Promise |
+| `isAuthenticated` | 有 refresh token 即视为已登录（access 过期可静默刷新） |
+| API 错误 | 网关：`{ error: true, message }`；Nako：`{ success: false, error: { code, message } }` |
+| CORS | 允许 `Authorization`；用户写接口允许 `PUT` |
+
+> 长期目标：抽出 `@25-ji-code-de/sekai-auth` 浏览器 SDK，统一 hub / 25ji / nightcord 的 PKCE 客户端。目前以「约定 + 复制改进」对齐。
 
 ## 数据流
 
 ### 认证流程
 
 ```
-用户 → Nightcord
+用户 → 应用 (hub / nightcord / 25ji …)
   ↓
-点击"使用 SEKAI Pass 登录"
+点击「使用 SEKAI Pass 登录」
   ↓
-跳转到 id.nightcord.de5.net
+跳转 id.nightcord.de5.net/oauth/authorize?…&code_challenge=…
   ↓
-OAuth 授权（PKCE）
+授权后回调 /callback
   ↓
-回调到 Nightcord
+用 code + code_verifier 换 access_token / refresh_token
   ↓
-获取 Access Token
-  ↓
-调用 /oauth/userinfo
-  ↓
-获取用户信息，登录成功
+调用 /oauth/userinfo → 展示用户信息
 ```
 
 ### API 请求流程
 
 ```
-Nightcord → api.nightcord.de5.net/sekai/stickers/autocomplete.json
-  ↓
-检查 Edge Cache (30s)
-  ↓ MISS
-检查源站 (sticker.nightcord.de5.net)
-  ↓
-返回数据 + 写入 Edge Cache
-  ↓
-返回给 Nightcord
+应用 → api.nightcord.de5.net/user/*   (Bearer)
+应用 → nako.nightcord.de5.net/api/*   (Bearer)
+Nightcord 上传 → storage…/v2/upload → 消息内嵌 <$SEKAI:…:uuid>
+公开读媒体 → r2…/images/{uuid}
 ```
 
-### 音乐数据流程
+### 用户数据同步（25ji）
 
 ```
-25ji → api.nightcord.de5.net/sekai/music_data.json
-  ↓
-检查 Edge Cache (30s)
-  ↓ MISS
-检查 R2 Cache (3min fresh, 10min stale)
-  ↓ MISS
-并行获取 3 个上游源
-  ├─ sekai-world.github.io/musics.json
-  ├─ sekai-world.github.io/musicVocals.json
-  └─ i18n-json.sekai.best/music_titles.json
-  ↓
-合并 + 压缩 + 存储到 R2
-  ↓
-返回给 25ji + 写入 Edge Cache
+25ji 本地 localStorage
+  ↕ POST/GET /user/sync?project=25ji
+gateway D1 user_sync_data（版本合并）
+  → hub 仪表盘读取展示
 ```
-
-## 技术栈
-
-### 运行平台
-
-- **Cloudflare Workers** - 无服务器计算
-- **Cloudflare Pages** - 静态站点托管
-- **Cloudflare D1** - SQLite 数据库
-- **Cloudflare KV** - 键值存储
-- **Cloudflare R2** - 对象存储
-- **Cloudflare Vectorize** - 向量数据库
-
-### 编程语言
-
-- **TypeScript** - sekai_pass, nightcord-nako, pjsekai
-- **JavaScript** - nightcord, 25ji_sagyo_fukei, stickers
-
-### 框架和库
-
-- **Hono** - 高性能 Web 框架
-- **Lucia Auth** - 认证库
-- **HLS.js** - 视频播放
-- **Web Audio API** - 音频处理
-
-## 缓存策略
-
-### API 网关缓存
-
-| 端点 | Edge TTL | R2 Fresh | R2 Stale | 说明 |
-|------|----------|----------|----------|------|
-| `/sekai/music_data.json` | 30s | 3min | 10min | 音乐数据 |
-| `/sekai/stickers/autocomplete.json` | 1h | - | - | 贴纸索引 |
-
-### 静态资源缓存
-
-| 域名 | Edge TTL | Browser TTL | 说明 |
-|------|----------|-------------|------|
-| `assets.nightcord.de5.net` | 1年 | 1个月 | 静态资源 |
-| `sticker.nightcord.de5.net` | 1年 | 1个月 | 贴纸图片 |
-
-## 监控和日志
-
-所有请求都会记录以下指标：
-
-- **请求指标** - 时长、状态码、国家、缓存状态
-- **错误日志** - 上下文、堆栈、额外信息
-- **缓存事件** - 命中/未命中、来源（edge/r2/origin）
-
-日志通过 `wrangler tail` 实时查看，未来可集成 Analytics Engine。
-
-## 下一步
-
-- [快速开始](/guide/getting-started) - 开始使用
-- [项目总览](/projects/overview) - 查看所有项目
-- [API 参考](/api/gateway) - API 网关文档

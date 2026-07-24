@@ -2,192 +2,142 @@
 
 API 网关（`api.nightcord.de5.net`）是 SEKAI 生态的统一 API 入口。
 
-## 端点
+## 公开端点
 
-### SEKAI 音乐数据
-
-获取 Project SEKAI 的音乐数据（聚合自多个上游源）。
+### 健康检查
 
 ```http
-GET /sekai/music_data.json
+GET /
+GET /health
 ```
-
-**响应示例：**
 
 ```json
 {
-  "songs": [
+  "service": "gateway",
+  "status": "ok",
+  "version": "1.0.0",
+  "routes": ["/sekai/*", "/assets/*", "/user/*", "/chat/*", "/study/*"]
+}
+```
+
+### SEKAI 音乐数据
+
+聚合 Project SEKAI 上游源，返回 **v3 压缩字段** JSON。
+
+```http
+GET /sekai/music_data.json
+GET /sekai/music_data.json?refresh=1
+```
+
+**响应形状（v3）：**
+
+```json
+{
+  "v": 3,
+  "t": 1710000000000,
+  "n": 500,
+  "m": [
     {
       "i": 1,
       "t": "Tell Your World",
-      "p": "kz (livetune)",
-      "d": 126,
-      "c": "初音ミク"
+      "p": "てるゆあわーるど",
+      "tz": "告诉你的世界",
+      "c": "kz",
+      "l": "kz",
+      "a": "music001",
+      "f": 0,
+      "v": [{ "i": 1, "t": "original_music", "c": "…", "a": "…", "ch": [[21, "game_character"]] }]
     }
   ]
 }
 ```
 
-**字段说明：**
+| 字段 | 含义 |
+|------|------|
+| `v` | 格式版本（当前 3） |
+| `t` | 生成时间戳 ms |
+| `n` | 曲目数量 |
+| `m[]` | 曲目列表 |
+| `m[].i` | 曲目 ID |
+| `m[].t` | 标题 |
+| `m[].p` | 读音 |
+| `m[].tz` | 中文标题（若有） |
+| `m[].c` / `l` | 作曲 / 作词 |
+| `m[].a` | assetbundleName |
+| `m[].v` | 音源列表 |
 
-- `i` - 歌曲 ID
-- `t` - 标题
-- `p` - 作曲家
-- `d` - 时长（秒）
-- `c` - 角色
-
-**缓存策略：**
-
-- Edge Cache: 30 秒
-- R2 Fresh: 3 分钟
-- R2 Stale: 10 分钟
+**缓存：** Edge 30s · R2 新鲜 3min · stale 可用 10min · 上游失败可返回 STALE。
 
 ### 贴纸自动补全
-
-获取贴纸自动补全数据。
 
 ```http
 GET /sekai/stickers/autocomplete.json
 ```
 
-**响应示例：**
+代理 `sticker.nightcord.de5.net/autocomplete.json`，Edge 缓存约 1 小时。
 
-```json
-{
-  "stamp": {
-    "未来：请多关照": "weilai_qingduoguanzhao",
-    "铃：一起加油吧～！": "ling_yiqijiayouba"
-  },
-  "character": {
-    ...
-  }
-}
+### 资源预取
+
+```http
+GET /assets/prefetch?path=/music/long/xxx.mp3
 ```
 
-**缓存策略：**
+从 `storage.sekai.best` 拉资源写入 R2（path 已做遍历校验）。
 
-- Edge Cache: 1 小时
+## 需认证端点（`Authorization: Bearer <access_token>`）
 
-## 使用示例
+Token 由 **SEKAI Pass** 签发；Gateway 通过 D1 `AUTH_DB` 直读校验。
 
-### JavaScript / TypeScript
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/user/profile` | 扩展资料 bio |
+| PUT | `/user/profile` | 更新 bio（≤500 字） |
+| GET | `/user/stats?project=&date=` | 日统计（按 project 分组） |
+| POST | `/user/events` | 上报事件 → 更新统计 / 成就 |
+| GET | `/user/activity` | 活动时间线 |
+| GET | `/user/achievements` | 成就列表 |
+| GET | `/user/sync?project=25ji` | 读取云同步包 |
+| POST | `/user/sync` | 上传并合并同步包 |
 
-```javascript
-// 获取音乐数据
-const response = await fetch('https://api.nightcord.de5.net/sekai/music_data.json');
-const data = await response.json();
+事件与 metric 命名见 [前端客户端约定](/guide/client-conventions#gateway-调用)。
 
-console.log(`共 ${data.songs.length} 首歌曲`);
-
-// 获取贴纸数据
-const stickers = await fetch('https://api.nightcord.de5.net/sekai/stickers/autocomplete.json');
-const stickerData = await stickers.json();
-
-console.log('贴纸分类:', Object.keys(stickerData));
-```
-
-### Python
-
-```python
-import requests
-
-# 获取音乐数据
-response = requests.get('https://api.nightcord.de5.net/sekai/music_data.json')
-data = response.json()
-
-print(f"共 {len(data['songs'])} 首歌曲")
-
-# 获取贴纸数据
-stickers = requests.get('https://api.nightcord.de5.net/sekai/stickers/autocomplete.json')
-sticker_data = stickers.json()
-
-print('贴纸分类:', list(sticker_data.keys()))
-```
-
-### cURL
-
-```bash
-# 获取音乐数据
-curl https://api.nightcord.de5.net/sekai/music_data.json
-
-# 获取贴纸数据
-curl https://api.nightcord.de5.net/sekai/stickers/autocomplete.json
-
-# 强制刷新缓存
-curl 'https://api.nightcord.de5.net/sekai/music_data.json?refresh=1'
-```
-
-## 错误处理
-
-API 使用标准 HTTP 状态码：
-
-- `200` - 成功
-- `404` - 端点不存在
-- `500` - 服务器错误
-
-**错误响应格式：**
+**错误形状：**
 
 ```json
 {
   "error": true,
-  "message": "Failed to fetch data",
-  "details": "Upstream server timeout"
+  "message": "Unauthorized"
 }
 ```
 
-## 性能优化
+## 使用示例
 
-### 缓存命中率
+```javascript
+// 公开：音乐
+const res = await fetch('https://api.nightcord.de5.net/sekai/music_data.json');
+const data = await res.json();
+console.log(`v${data.v} · ${data.n} 首`);
 
-API 网关使用多层缓存：
-
-1. **Edge Cache** - Cloudflare 边缘节点，全球分布
-2. **R2 Cache** - 对象存储，作为二级缓存
-3. **Origin** - 上游源站
-
-大部分请求会命中 Edge Cache，响应时间 < 50ms。
-
-### 监控
-
-所有请求都会记录以下指标：
-
-```json
-{
-  "timestamp": "2026-02-11T08:45:23Z",
-  "method": "GET",
-  "path": "/sekai/music_data.json",
-  "status": 200,
-  "duration": 45,
-  "country": "CN",
-  "cacheStatus": "HIT"
-}
+// 认证：同步
+const sync = await fetch('https://api.nightcord.de5.net/user/sync?project=25ji', {
+  headers: { Authorization: `Bearer ${accessToken}` },
+});
 ```
-
-查看实时日志：
 
 ```bash
-cd ~/WebstormProjects/pjsekai
-wrangler tail
+curl https://api.nightcord.de5.net/sekai/music_data.json
+curl -H "Authorization: Bearer $TOKEN" \
+  'https://api.nightcord.de5.net/user/stats?date=2026-07-24'
 ```
 
-## 速率限制
+## 性能
 
-目前没有速率限制，但建议：
-
-- 合理使用缓存（不要频繁刷新）
-- 避免并发大量请求
-- 考虑在客户端缓存数据
-
-## 未来端点
-
-计划中的 API 端点：
-
-- `/user/*` - 用户相关 API（需要认证）
-- `/chat/*` - 聊天相关 API（需要认证）
-- `/study/*` - 学习相关 API（需要认证）
+- 音乐数据多层缓存；`X-Cache: HIT|MISS|STALE-ERROR`
+- 指标经 `console.log` JSON，可用 `wrangler tail` 查看
 
 ## 相关链接
 
-- [GitHub 仓库](https://github.com/25-ji-code-de/gateway)
+- [GitHub](https://github.com/25-ji-code-de/gateway)
 - [架构总览](/guide/architecture)
+- [前端客户端约定](/guide/client-conventions)
 - [项目详情](/projects/gateway)
