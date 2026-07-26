@@ -70,4 +70,4 @@ node scripts/build-legal.mjs
 
 ---
 
-*本文档系统由 SEKAI 生态维护，遵循 [MIT License](../../LICENSE)。*
+*本文档系统由 SEKAI 生态维护，遵循 [CC BY 4.0](https://github.com/25-ji-code-de/docs/blob/main/LICENSE)。各项目代码许可证以其自身仓库的 LICENSE 为准。*

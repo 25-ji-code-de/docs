@@ -14,8 +14,12 @@
     "nightcord",
     "documentation"
   ],
-  "author": "bili_47177171806",
-  "license": "MIT",
+  "author": "The 25-ji-code-de Team",
+  "license": "CC-BY-4.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/25-ji-code-de/docs.git"
+  },
   "devDependencies": {
     "vitepress": "^1.6.4"
   }

@@ -12,6 +12,7 @@ export default defineConfig({
       { text: '首页', link: '/' },
       { text: '指南', link: '/guide/introduction' },
       { text: 'API', link: '/api/gateway' },
+      { text: '规范', link: '/spec/sekai-v2' },
       { text: '项目', link: '/projects/overview' },
       { text: '法律', link: '/legal/' }
     ],
@@ -42,6 +43,14 @@ export default defineConfig({
             { text: 'API 网关', link: '/api/gateway' },
             { text: 'SEKAI Pass', link: '/api/sekai-pass' },
             { text: 'Nako AI', link: '/api/nako' }
+          ]
+        }
+      ],
+      '/spec/': [
+        {
+          text: '规范',
+          items: [
+            { text: 'SEKAI v2 标记规范', link: '/spec/sekai-v2' }
           ]
         }
       ],
