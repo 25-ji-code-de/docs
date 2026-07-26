@@ -17,12 +17,17 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci || npm install
+      # 构建必须排在测试前面 —— test/headers.test.mjs 检查的是**构建产物**
+      # （全站有没有 <form>、有没有外部资源），没有 dist 它只会空跑。
+      # 其余几组测试不依赖 dist，放在后面一样成立。
+      - name: Build docs
+        run: npm run docs:build
+
       # 文档里的示例必须与同一份文档的参考章节一致 ——
       # 人们复制的是示例，不是表格
       - name: Test
         run: npm test
-      - name: Build docs
-        run: npm run docs:build
+
       # docs/legal/complete/*.md 是 build-legal.mjs 的生成物，但也提交进了仓库。
       # 这一步保证两者不会再悄悄分叉 —— 此前仓库里那份缺了补充条款的小节标题，
       # 而线上站是 Pages 现场构建的，两边内容不一致了都没人发现。
