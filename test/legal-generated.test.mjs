@@ -16,17 +16,19 @@
  *
  * 而 `版本` 字段本来就是真正的变更标记，日期把它的作用抵消掉了。
  *
- * 现在取自配置里的 `lastUpdated`，改条款时手动更新 ——
+ * 现在取自配置里的 `updated`，改条款时手动更新 ——
  * 这是一个应当有人**决定**的动作，不该是构建的副产品。
  *
- * **二、仓里的 `complete/*.md` 落后于生成器。**
+ * **二、`complete/*.md` 是生成物却提交进了仓。**
  *
- * 它们是生成物，但被提交进了仓。发现时仓里的版本比生成器产出的少 90 行
- * （旧版生成器没有那些章节标题），也就是说：**读仓库的人看到的法律文档，
- * 与线上发布的不是同一份。** 线上是对的（CI 每次现构建），仓里的是旧的。
+ * 这本身就要求「仓里的那份必须等于生成器现在产出的那份」，否则**读仓库的人
+ * 看到的法律文档，与线上发布的不是同一份**（线上是 CI 现场构建的）。
  *
- * 对普通文档这只是不整洁；对法律文档，「仓库里写的」与「用户看到的」
- * 不一致是另一回事。
+ * 对普通文档这只是不整洁；对法律文档是另一回事。
+ *
+ * （我一度把这条写成「仓里的落后 90 行」—— 说反了。实际是 Windows 上未归一化
+ *   行尾的生成器**多**产出 90 行本该剥掉的标题，仓里那份是对的。
+ *   看 diff 时把方向读反了。）
  */
 
 import { test, describe } from 'node:test';
@@ -56,26 +58,26 @@ describe('最后更新日期', () => {
     const dateSource = /const \[year, month, day\] = ([^;]+);/.exec(fn)?.[1] ?? '';
     assert.match(
       dateSource,
-      /config\.lastUpdated/,
-      `日期取自 ${dateSource.trim()} —— 应当取自配置的 lastUpdated`,
+      /config\.updated/,
+      `日期取自 ${dateSource.trim()} —— 应当取自配置的 updated`,
     );
   });
 
-  test('每个文档配置都声明了 lastUpdated，且格式合法', () => {
+  test('每个文档配置都声明了 updated，且格式合法', () => {
     const src = readFileSync(join(root, 'scripts/build-legal.mjs'), 'utf8');
     const versions = [...src.matchAll(/^\s*version: '/gm)].length;
-    const dates = [...src.matchAll(/^\s*lastUpdated: '(\d{4}-\d{2}-\d{2})',/gm)];
+    const dates = [...src.matchAll(/^\s*updated: '(\d{4}-\d{2}-\d{2})',/gm)];
     assert.equal(
       dates.length,
       versions,
-      `${versions} 个文档有 version，但只有 ${dates.length} 个有合法的 lastUpdated`,
+      `${versions} 个文档有 version，但只有 ${dates.length} 个有合法的 updated`,
     );
   });
 
   test('生成物里的日期与配置一致，且不是今天', () => {
     /*
      * 「不是今天」这一条会在真的改了条款、且当天就构建时误报 ——
-     * 那种时候把 lastUpdated 改成今天是**正确**的，此时应当更新这条测试
+     * 那种时候把 updated 改成今天是**正确**的，此时应当更新这条测试
      * 的例外，而不是把它删掉。
      */
     const today = new Date();

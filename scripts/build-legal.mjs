@@ -25,12 +25,7 @@ const DOCUMENTS = {
     service: 'SEKAI Pass',
     url: 'https://id.nightcord.de5.net',
     version: '1.3',
-
-    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
-
-    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
-
-    lastUpdated: '2026-02-11',
+    updated: '2026-02-11',
     base: 'privacy-base.md',
     supplements: ['authentication.md'],
     intro: `**SEKAI Pass**（以下简称"本服务"或"我们"）非常重视用户的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。
@@ -42,12 +37,7 @@ const DOCUMENTS = {
     service: '『25时、Nightcord见。』成员们的 24 小时工作日常',
     url: 'https://25ji.nightcord.de5.net',
     version: '3.1',
-
-    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
-
-    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
-
-    lastUpdated: '2026-02-11',
+    updated: '2026-02-11',
     base: 'privacy-base.md',
     supplements: ['local-storage.md', 'realtime-ugc.md'],
     intro: `『25时、Nightcord见。』成员们的 24 小时工作日常（以下简称"本服务"或"我们"）非常重视用户的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。
@@ -59,12 +49,7 @@ const DOCUMENTS = {
     service: 'Nightcord',
     url: 'https://nightcord.de5.net',
     version: '1.0',
-
-    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
-
-    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
-
-    lastUpdated: '2026-02-11',
+    updated: '2026-02-11',
     base: 'privacy-base.md',
     supplements: ['realtime-ugc.md'],
     intro: `**Nightcord**（以下简称"本服务"或"我们"）非常重视用户的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。
@@ -76,12 +61,7 @@ const DOCUMENTS = {
     service: 'SEKAI Pass',
     url: 'https://id.nightcord.de5.net',
     version: '1.3',
-
-    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
-
-    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
-
-    lastUpdated: '2026-02-11',
+    updated: '2026-02-11',
     base: 'terms-base.md',
     supplements: ['authentication.md'],
     intro: `欢迎使用 **SEKAI Pass**（以下简称"本服务"）！
@@ -97,12 +77,7 @@ const DOCUMENTS = {
     service: '『25时、Nightcord见。』成员们的 24 小时工作日常',
     url: 'https://25ji.nightcord.de5.net',
     version: '3.1',
-
-    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
-
-    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
-
-    lastUpdated: '2026-02-11',
+    updated: '2026-02-11',
     base: 'terms-base.md',
     supplements: ['local-storage.md', 'realtime-ugc.md', 'copyright-pjsekai.md'],
     intro: `欢迎使用『25时、Nightcord见。』成员们的 24 小时工作日常（以下简称"本服务"）！
@@ -118,12 +93,7 @@ const DOCUMENTS = {
     service: 'Nightcord',
     url: 'https://nightcord.de5.net',
     version: '1.0',
-
-    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
-
-    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
-
-    lastUpdated: '2026-02-11',
+    updated: '2026-02-11',
     base: 'terms-base.md',
     supplements: ['realtime-ugc.md'],
     intro: `欢迎使用 **Nightcord**（以下简称"本服务"）！
@@ -136,50 +106,40 @@ const DOCUMENTS = {
   }
 };
 
-/**
- * 读文件，并把行尾统一成 LF。
- *
- * ── 为什么必须归一化 ────────────────────────────────────────────
- *
- * 下面那几条剥离标题的正则写的是 `\n`，只认 LF。而这些源文件在 Windows
- * 检出时是 CRLF（`core.autocrlf=true`），于是：
- *
- *   Linux   源文件是 LF  → 正则匹配上 → 标题被剥掉
- *   Windows 源文件是 CRLF → 正则匹配不上 → **标题留在了文档里**
- *
- * 也就是说，**同一份配置在两个操作系统上会生成两份不同的法律文档**，
- * 而且没有任何报错。仓里那份就是 Windows 生成的 —— 比 CI 生成的多出
- * 一批本该删掉的章节标题。
- *
- * 在入口处归一化，比在每条正则上写 `\r?\n` 更可靠：新加的正则不会再漏。
- */
 function readFile(filePath) {
-  return fs.readFileSync(filePath, 'utf-8').replace(/\r\n/g, '\n');
+  return fs.readFileSync(filePath, 'utf-8');
 }
 
 function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, 'utf-8');
 }
 
+/**
+ * 把 CRLF 归一成 LF。
+ *
+ * 下面剥离标题 / 适用范围说明的正则写死了 `\n\n`。在 Windows 检出（CRLF）下
+ * 这些正则匹配不上，于是补充文档的 `# 标题` 和 `> 适用于：…` 会被留在成品里，
+ * 而同一份源码在 Linux CI 上又会正常剥掉 —— 同样的输入产出不同的文档。
+ * 归一化后，构建结果与检出时的行尾设置无关。
+ */
+function normalizeNewlines(text) {
+  return text.replace(/\r\n/g, '\n');
+}
+
 function buildDocument(docKey, config) {
-  /*
-   * 日期取自配置的 `lastUpdated`，**不是构建当天**。
-   *
-   * 从前这里写的是 `new Date()`，于是每次部署「最后更新日期」都变 ——
-   * 而内容可能一个字没改。用户正是靠这个日期判断「条款是不是变了」，
-   * 这样一来这个信号全是噪音；看几次假警报之后就没人再看了。
-   *
-   * 而 `版本` 字段本来就是真正的变更标记，日期把它的作用抵消掉了。
-   *
-   * 改条款时手动更新 `lastUpdated` —— 这是一个应当有人**决定**的动作，
-   * 不该是构建的副产品。
-   */
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(config.lastUpdated ?? '')) {
+  // 「最后更新日期」必须来自配置里钉死的 updated，**不能**用 new Date()。
+  //
+  // 用构建时间有两个问题：
+  //   1. 法律文档会每天都声称自己"今天刚更新"，而条款其实没变 —— 对用户是误导
+  //   2. 每次构建产物都不同，导致提交进仓库的生成物永远是脏的
+  //
+  // 条款内容真的变了的时候，同时改 version 和 updated。
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(config.updated ?? '')) {
     throw new Error(
-      `${docKey} 缺少合法的 lastUpdated（应为 YYYY-MM-DD）：${config.lastUpdated}`,
+      `文档 ${docKey} 缺少合法的 updated 字段（应为 YYYY-MM-DD），当前值：${config.updated}`,
     );
   }
-  const [year, month, day] = config.lastUpdated.split('-');
+  const [year, month, day] = config.updated.split('-');
   const dateStr = `${year}年${month}月${day}日`;
 
   let content = `# ${config.title}\n\n`;
@@ -193,7 +153,7 @@ function buildDocument(docKey, config) {
   // 读取补充文档内容
   const supplementContents = config.supplements.map(supplement => {
     const supplementPath = path.join(SUPPLEMENTS_DIR, supplement);
-    let supplementContent = readFile(supplementPath);
+    let supplementContent = normalizeNewlines(readFile(supplementPath));
 
     // 移除补充文档的标题和适用范围说明
     supplementContent = supplementContent.replace(/^#[^\n]+\n\n/, '');
@@ -209,7 +169,7 @@ function buildDocument(docKey, config) {
 
   // 读取基础文档内容
   const basePath = path.join(BASE_DIR, config.base);
-  let baseContent = readFile(basePath);
+  let baseContent = normalizeNewlines(readFile(basePath));
 
   // 移除基础文档的标题和说明
   baseContent = baseContent.replace(/^#[^\n]+\n\n/, '');

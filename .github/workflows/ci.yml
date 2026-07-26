@@ -23,3 +23,13 @@ jobs:
         run: npm test
       - name: Build docs
         run: npm run docs:build
+      # docs/legal/complete/*.md 是 build-legal.mjs 的生成物，但也提交进了仓库。
+      # 这一步保证两者不会再悄悄分叉 —— 此前仓库里那份缺了补充条款的小节标题，
+      # 而线上站是 Pages 现场构建的，两边内容不一致了都没人发现。
+      - name: Verify generated legal docs are in sync
+        run: |
+          if ! git diff --exit-code --stat -- docs/legal/complete/; then
+            echo "::error::docs/legal/complete/ 与 build-legal.mjs 的输出不一致。请在本地跑 npm run legal:build 并提交结果。"
+            exit 1
+          fi
+          echo "生成的法律文档与源文件一致"
