@@ -5,6 +5,11 @@ export default defineConfig({
   description: '25時、コードで。',
   lang: 'zh-CN',
 
+  // 注：构建时会有几行 "The language 'abnf' is not loaded" 警告 ——
+  // SEKAI v2 规范里的形式文法用 ```abnf 标注，shiki 没有内置这个语言，
+  // 会回退成纯文本。试过用 markdown.languageAlias 映射到 text/plaintext，
+  // 反而会把警告升级成构建**错误**，所以保留警告。构建结果不受影响。
+
   themeConfig: {
     logo: '/logo.svg',
 
@@ -32,7 +37,8 @@ export default defineConfig({
           items: [
             { text: 'SEKAI Pass 认证', link: '/guide/sekai-pass' },
             { text: '使用 API 网关', link: '/guide/api-gateway' },
-            { text: '前端客户端约定', link: '/guide/client-conventions' }
+            { text: '前端客户端约定', link: '/guide/client-conventions' },
+            { text: '工程约定（跨仓）', link: '/guide/engineering' }
           ]
         }
       ],
