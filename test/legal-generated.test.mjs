@@ -105,35 +105,49 @@ describe('生成物是最新的', () => {
      * 这条会真的跑一次生成器（写文件），然后问 git 有没有变化。
      * 如果本来就是最新的，重写的内容一模一样，什么都不会变。
      */
-    let dirtyBefore;
+    /*
+     * 用 `git diff` 而不是 `git status --porcelain`。
+     *
+     * 前者比对**内容**，后者会把「刚被重写、mtime 变了但内容相同」的文件
+     * 也报成改动（stat-dirty）。这条一开始用的是 git status，在 Windows 上
+     * 必然误报：生成器重写文件之后 mtime 变了，而内容经行尾归一化后一模一样。
+     *
+     * 单个 PR 的分支上碰巧没触发，把整条栈合起来跑测试时才暴露 ——
+     * **「能干净合并」不等于「合并后测试还过」。**
+     */
+    const contentChanged = () => {
+      try {
+        execFileSync('git', ['diff', '--quiet', '--', 'docs/legal/complete'], {
+          cwd: root, stdio: 'ignore',
+        });
+        return false;
+      } catch {
+        return true;
+      }
+    };
+
     try {
-      dirtyBefore = execFileSync('git', ['status', '--porcelain', 'docs/legal/complete'], {
-        cwd: root, encoding: 'utf8',
-      }).trim();
+      execFileSync('git', ['rev-parse', '--git-dir'], { cwd: root, stdio: 'ignore' });
     } catch {
       // 不在 git 检出里（比如 npm 包解压后），这条跳过而不是假装通过
       return;
     }
+
     assert.equal(
-      dirtyBefore,
-      '',
-      '跑测试前 complete/ 就有未提交的改动，这条测不出东西 —— 先提交或还原',
+      contentChanged(),
+      false,
+      '跑测试前 complete/ 就有未提交的内容改动，这条测不出东西 —— 先提交或还原',
     );
 
     execFileSync(process.execPath, [join(root, 'scripts/build-legal.mjs')], {
       cwd: root, stdio: 'ignore',
     });
 
-    const dirtyAfter = execFileSync('git', ['status', '--porcelain', 'docs/legal/complete'], {
-      cwd: root, encoding: 'utf8',
-    }).trim();
-
     assert.equal(
-      dirtyAfter,
-      '',
-      '重跑生成器之后 complete/ 变了 —— 仓里的法律文档落后于生成器。\n' +
-        '跑 `npm run legal:build` 并提交结果。\n' +
-        dirtyAfter,
+      contentChanged(),
+      false,
+      '重跑生成器之后 complete/ 的**内容**变了 —— 仓里的法律文档与生成器不一致。\n' +
+        '跑 `npm run legal:build` 并提交结果。',
     );
   });
 });
