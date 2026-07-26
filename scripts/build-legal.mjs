@@ -114,6 +114,18 @@ function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, 'utf-8');
 }
 
+/**
+ * 把 CRLF 归一成 LF。
+ *
+ * 下面剥离标题 / 适用范围说明的正则写死了 `\n\n`。在 Windows 检出（CRLF）下
+ * 这些正则匹配不上，于是补充文档的 `# 标题` 和 `> 适用于：…` 会被留在成品里，
+ * 而同一份源码在 Linux CI 上又会正常剥掉 —— 同样的输入产出不同的文档。
+ * 归一化后，构建结果与检出时的行尾设置无关。
+ */
+function normalizeNewlines(text) {
+  return text.replace(/\r\n/g, '\n');
+}
+
 function buildDocument(docKey, config) {
   // 「最后更新日期」必须来自配置里钉死的 updated，**不能**用 new Date()。
   //
@@ -141,7 +153,7 @@ function buildDocument(docKey, config) {
   // 读取补充文档内容
   const supplementContents = config.supplements.map(supplement => {
     const supplementPath = path.join(SUPPLEMENTS_DIR, supplement);
-    let supplementContent = readFile(supplementPath);
+    let supplementContent = normalizeNewlines(readFile(supplementPath));
 
     // 移除补充文档的标题和适用范围说明
     supplementContent = supplementContent.replace(/^#[^\n]+\n\n/, '');
@@ -157,7 +169,7 @@ function buildDocument(docKey, config) {
 
   // 读取基础文档内容
   const basePath = path.join(BASE_DIR, config.base);
-  let baseContent = readFile(basePath);
+  let baseContent = normalizeNewlines(readFile(basePath));
 
   // 移除基础文档的标题和说明
   baseContent = baseContent.replace(/^#[^\n]+\n\n/, '');
