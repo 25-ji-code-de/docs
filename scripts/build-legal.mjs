@@ -25,6 +25,12 @@ const DOCUMENTS = {
     service: 'SEKAI Pass',
     url: 'https://id.nightcord.de5.net',
     version: '1.3',
+
+    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
+
+    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
+
+    lastUpdated: '2026-02-11',
     base: 'privacy-base.md',
     supplements: ['authentication.md'],
     intro: `**SEKAI Pass**（以下简称"本服务"或"我们"）非常重视用户的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。
@@ -36,6 +42,12 @@ const DOCUMENTS = {
     service: '『25时、Nightcord见。』成员们的 24 小时工作日常',
     url: 'https://25ji.nightcord.de5.net',
     version: '3.1',
+
+    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
+
+    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
+
+    lastUpdated: '2026-02-11',
     base: 'privacy-base.md',
     supplements: ['local-storage.md', 'realtime-ugc.md'],
     intro: `『25时、Nightcord见。』成员们的 24 小时工作日常（以下简称"本服务"或"我们"）非常重视用户的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。
@@ -47,6 +59,12 @@ const DOCUMENTS = {
     service: 'Nightcord',
     url: 'https://nightcord.de5.net',
     version: '1.0',
+
+    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
+
+    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
+
+    lastUpdated: '2026-02-11',
     base: 'privacy-base.md',
     supplements: ['realtime-ugc.md'],
     intro: `**Nightcord**（以下简称"本服务"或"我们"）非常重视用户的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。
@@ -58,6 +76,12 @@ const DOCUMENTS = {
     service: 'SEKAI Pass',
     url: 'https://id.nightcord.de5.net',
     version: '1.3',
+
+    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
+
+    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
+
+    lastUpdated: '2026-02-11',
     base: 'terms-base.md',
     supplements: ['authentication.md'],
     intro: `欢迎使用 **SEKAI Pass**（以下简称"本服务"）！
@@ -73,6 +97,12 @@ const DOCUMENTS = {
     service: '『25时、Nightcord见。』成员们的 24 小时工作日常',
     url: 'https://25ji.nightcord.de5.net',
     version: '3.1',
+
+    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
+
+    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
+
+    lastUpdated: '2026-02-11',
     base: 'terms-base.md',
     supplements: ['local-storage.md', 'realtime-ugc.md', 'copyright-pjsekai.md'],
     intro: `欢迎使用『25时、Nightcord见。』成员们的 24 小时工作日常（以下简称"本服务"）！
@@ -88,6 +118,12 @@ const DOCUMENTS = {
     service: 'Nightcord',
     url: 'https://nightcord.de5.net',
     version: '1.0',
+
+    // 最后**实质性**修改的日期。改条款时手动更新这里 ——
+
+    // 从前它取的是构建当天，于是每次部署日期都变、而内容可能一个字没改。
+
+    lastUpdated: '2026-02-11',
     base: 'terms-base.md',
     supplements: ['realtime-ugc.md'],
     intro: `欢迎使用 **Nightcord**（以下简称"本服务"）！
@@ -109,8 +145,24 @@ function writeFile(filePath, content) {
 }
 
 function buildDocument(docKey, config) {
-  const today = new Date().toISOString().split('T')[0];
-  const [year, month, day] = today.split('-');
+  /*
+   * 日期取自配置的 `lastUpdated`，**不是构建当天**。
+   *
+   * 从前这里写的是 `new Date()`，于是每次部署「最后更新日期」都变 ——
+   * 而内容可能一个字没改。用户正是靠这个日期判断「条款是不是变了」，
+   * 这样一来这个信号全是噪音；看几次假警报之后就没人再看了。
+   *
+   * 而 `版本` 字段本来就是真正的变更标记，日期把它的作用抵消掉了。
+   *
+   * 改条款时手动更新 `lastUpdated` —— 这是一个应当有人**决定**的动作，
+   * 不该是构建的副产品。
+   */
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(config.lastUpdated ?? '')) {
+    throw new Error(
+      `${docKey} 缺少合法的 lastUpdated（应为 YYYY-MM-DD）：${config.lastUpdated}`,
+    );
+  }
+  const [year, month, day] = config.lastUpdated.split('-');
   const dateStr = `${year}年${month}月${day}日`;
 
   let content = `# ${config.title}\n\n`;

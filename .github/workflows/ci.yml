@@ -17,5 +17,9 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci || npm install
+      # 文档里的示例必须与同一份文档的参考章节一致 ——
+      # 人们复制的是示例，不是表格
+      - name: Test
+        run: npm test
       - name: Build docs
         run: npm run docs:build
