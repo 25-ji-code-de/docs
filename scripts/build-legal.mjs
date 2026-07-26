@@ -136,8 +136,25 @@ const DOCUMENTS = {
   }
 };
 
+/**
+ * 读文件，并把行尾统一成 LF。
+ *
+ * ── 为什么必须归一化 ────────────────────────────────────────────
+ *
+ * 下面那几条剥离标题的正则写的是 `\n`，只认 LF。而这些源文件在 Windows
+ * 检出时是 CRLF（`core.autocrlf=true`），于是：
+ *
+ *   Linux   源文件是 LF  → 正则匹配上 → 标题被剥掉
+ *   Windows 源文件是 CRLF → 正则匹配不上 → **标题留在了文档里**
+ *
+ * 也就是说，**同一份配置在两个操作系统上会生成两份不同的法律文档**，
+ * 而且没有任何报错。仓里那份就是 Windows 生成的 —— 比 CI 生成的多出
+ * 一批本该删掉的章节标题。
+ *
+ * 在入口处归一化，比在每条正则上写 `\r?\n` 更可靠：新加的正则不会再漏。
+ */
 function readFile(filePath) {
-  return fs.readFileSync(filePath, 'utf-8');
+  return fs.readFileSync(filePath, 'utf-8').replace(/\r\n/g, '\n');
 }
 
 function writeFile(filePath, content) {
