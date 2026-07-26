@@ -8,6 +8,7 @@
     "docs:build": "node scripts/build-legal.mjs && vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "legal:build": "node scripts/build-legal.mjs",
+    "pretest": "npm run docs:build",
     "test": "node --test \"test/*.test.mjs\""
   },
   "keywords": [
