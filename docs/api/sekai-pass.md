@@ -232,15 +232,22 @@ authUrl.searchParams.set('state', generateState());
 window.location.href = authUrl.toString();
 
 // 交换 token
+//
+// 三处容易写错的地方，本文上面的「Token 端点」一节是准的：
+//   1. 必须是 application/x-www-form-urlencoded —— 服务端读的是 formData()，
+//      发 JSON 会直接抛 TypeError
+//   2. code_verifier 必需 —— OAuth 2.1 强制 PKCE，缺了换不到 token
+//   3. 没有 client_secret —— 本服务只支持 none 与 private_key_jwt 两种
+//      客户端认证方式，两种都不用密钥字符串
 const tokenResponse = await fetch('https://id.nightcord.de5.net/oauth/token', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: new URLSearchParams({
     grant_type: 'authorization_code',
     code: code,
     redirect_uri: 'https://your-app.com/callback',
     client_id: 'YOUR_CLIENT_ID',
-    client_secret: 'YOUR_CLIENT_SECRET'
+    code_verifier: codeVerifier   // 发起授权时生成、存在会话里的那个
   })
 });
 
@@ -260,12 +267,15 @@ const user = await userResponse.json();
 import requests
 
 # 交换 token
-token_response = requests.post('https://id.nightcord.de5.net/oauth/token', json={
+#
+# 注意用 data= 而不是 json= —— 服务端读的是表单，发 JSON 会失败。
+# code_verifier 必需（OAuth 2.1 强制 PKCE）；没有 client_secret。
+token_response = requests.post('https://id.nightcord.de5.net/oauth/token', data={
     'grant_type': 'authorization_code',
     'code': code,
     'redirect_uri': 'https://your-app.com/callback',
     'client_id': 'YOUR_CLIENT_ID',
-    'client_secret': 'YOUR_CLIENT_SECRET'
+    'code_verifier': code_verifier,  # 发起授权时生成、存在会话里的那个
 })
 
 access_token = token_response.json()['access_token']
