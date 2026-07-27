@@ -17,12 +17,22 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci || npm install
-      # 文档里的示例必须与同一份文档的参考章节一致 ——
-      # 人们复制的是示例，不是表格
+      # 这一步同时构建与测试：package.json 里的 pretest 钩子会先跑 docs:build。
+      #
+      # 「测试依赖构建产物」这件事写在 package.json 而不是这里 ——
+      # test/headers.test.mjs 检查的是构建产物（全站有没有 <form>、
+      # 有没有外部资源），没有 dist 它只会空跑。写在 workflow 里的话，
+      # 只有 CI 知道这个顺序：本地 `npm test`、跨仓检查脚本都不知道，
+      # 于是同一批测试在 CI 外面是空跑的。
+      #
+      # 这不是假想 —— 我那个「把整条 PR 栈合并后跑测试」的检查脚本正是
+      # 这么踩的：它只跑 npm test，docs 于是红了。
+      # 测的东西：文档里的示例必须与同一份文档的参考章节一致（人们复制的是
+      # 示例，不是表格）、法律文档的日期不是构建产物、强制生效的 CSP
+      # 依赖的前提仍然成立。
       - name: Test
         run: npm test
-      - name: Build docs
-        run: npm run docs:build
+
       # docs/legal/complete/*.md 是 build-legal.mjs 的生成物，但也提交进了仓库。
       # 这一步保证两者不会再悄悄分叉 —— 此前仓库里那份缺了补充条款的小节标题，
       # 而线上站是 Pages 现场构建的，两边内容不一致了都没人发现。

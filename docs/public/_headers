@@ -1,0 +1,46 @@
+# 安全响应头。
+#
+# 本站此前**一个都没有** —— 生态里五个静态站，只有这一个是裸的。
+# 实测（curl -sI）：nightcord / 25ji / sticker / sekai 都带 CSP + XFO，
+# docs 只有 Cloudflare 层的 nosniff 与 HSTS。
+#
+# ── 为什么强制生效的那条里没有 script-src ────────────────────────
+#
+# VitePress 每个页面都会输出内联 <script>：`check-dark-mode`、`check-mac-os`，
+# 以及构建生成的 `window.__VP_HASH_MAP__`。抽查 50 个页面共 108 段。
+#
+# 用哈希白名单也不行 —— __VP_HASH_MAP__ 的内容每次构建都变。
+# 所以完整策略里 script-src 只能留 'unsafe-inline'，它待在 Report-Only 那条。
+#
+# 这与 nightcord 的做法不同：那边全站零内联 script，才把 script-src 'self'
+# 提进了强制生效那条。这里做不到，就不假装做得到。
+#
+# ── 强制生效的四条为什么零破坏风险 ──────────────────────────────
+#
+#   object-src 'none'      站里没有 <object>/<embed>/<applet>
+#   base-uri 'self'        没有 <base> 标签
+#   form-action 'none'     构建产物里 <form> 计数为 0（全站查过）
+#   frame-ancestors 'none' 文档站没有被嵌套的正当理由
+#
+# 这四条挡的是点击劫持与 base 标签劫持。上面每一条的前提都由
+# test/headers.test.mjs 钉住 —— 哪天构建产物里冒出一个 <form>，
+# 测试会红，而不是等线上表单静默失效。
+#
+# ── Report-Only 的完整策略 ───────────────────────────────────
+#
+# 只放宽两处 'unsafe-inline'（script 与 style），其余一律 'self'：
+#   - 无外部字体（构建产物 CSS 里零个 url(https://)）
+#   - 图片只有 /logo.svg，同源
+#   - 搜索是 provider: 'local'，索引同源取
+#   - 页面里的 https:// 全是 <a href> 导航，CSP 不管这个
+#
+# 注意：Report-Only 目前**没有上报端点**，也就是说违规数据实际收不到。
+# 这是全生态共同的问题，记在 25-ji-code-de/.github#4，等你定方案。
+# 这里先与另外四个站保持一致，端点定了之后一处都不用改结构。
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
