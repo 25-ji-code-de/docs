@@ -16,8 +16,13 @@ Worker 侧对应的是 [`@25-ji-code-de/sekai-worker-kit`](https://github.com/25
 | 25ji-sagyo | `js/utils/auth.js` + `api.js` | IIFE → `window.SekaiAuth` | 待迁移 |
 | nightcord | `sekai-pass-auth.js` | IIFE → `SekaiPassAuth` | 待迁移 |
 | stickers-maker | `src/services/auth.service.ts` | TypeScript + OIDC discovery | 待迁移 |
+| puzzle-sekai | `src/auth/{pkce,session,oidc,config,user}.ts` | TypeScript，拆成五个模块 | 待迁移 |
 
-迁移前 hub 与 25ji 的 `auth.js` 是**近乎逐字相同的两份拷贝**，nightcord 与 stickers-maker 各自又有独立实现。四份的行为已经开始漂移，这是抽 SDK 的直接原因。
+迁移前 hub 与 25ji 的 `auth.js` 是**近乎逐字相同的两份拷贝**，nightcord、stickers-maker、puzzle-sekai 各自又有独立实现。**五份**的行为已经开始漂移，这是抽 SDK 的直接原因。
+
+::: warning 为什么是五份而不是四份
+早期的清点只数到四份 —— puzzle-sekai 被排除在跨仓一致性检查之外，所以它那份实现从来没被数进去。豁免掩盖问题，不是解决问题。检查器现在覆盖全部仓。
+:::
 
 ## 必须对齐的行为
 
@@ -31,6 +36,38 @@ Worker 侧对应的是 [`@25-ji-code-de/sekai-worker-kit`](https://github.com/25
 8. **refresh 失败**：清理本地 token；触发 `onAuthExpired` / 引导重新登录。
 9. **logout**：清理本地后 **best-effort** `POST /oauth/revoke`（RFC 7009，form-urlencoded，`keepalive`）。
 10. **`isAuthenticated()`**：有 refresh token 时即使 access 过期也算已登录（可静默续期）。
+11. **OIDC `nonce`**：`scope` 含 `openid` 时必须发 `nonce`，并且**拿到 `id_token` 后必须验它** —— 连同签名一起。
+
+## OIDC nonce：一个曾经全员踩空的点
+
+`nonce` 挡的是 **ID Token 注入** —— 攻击者把在别处（别的用户、别的会话）拿到的**合法** ID Token 塞进受害者的回调。
+
+`state` 挡不住这个。`state` 保证的是「这次回调对应我发起的那次请求」，它是外层参数；`nonce` 写在 ID Token **内部**、由签发方签名带回，保证的是「这个 ID Token 就是为这次请求签发的」。两者管的不是同一件事。
+
+抽 SDK 时清点的现状是：
+
+| 客户端 | 发 `nonce` | 验 `nonce` |
+|---|:--:|:--:|
+| hub / 25ji-sagyo / nightcord / stickers-maker | ✗ | ✗ |
+| puzzle-sekai | ✓ | ✗ |
+
+**没有一个闭环。** puzzle-sekai 是唯一发了的（`src/auth/oidc.ts`），但它的回调只解构 `access_token` / `refresh_token` / `expires_in`，从头到尾没碰过 `id_token` —— 那个 `nonce` 发出去就没有下文了。
+
+而 **SEKAI Pass 服务端一直是完整支持的**：授权端点读 `nonce`、存进 `oidc_auth_data`、`buildIDTokenClaims` 再把它写回 ID Token。服务端该做的都做了，客户端一侧没人接住。
+
+::: danger 只验 nonce 是没有意义的
+能注入 token 的攻击者同样能伪造 nonce。**必须连签名一起验**，两步缺一不可。
+
+具体地：只接受 `ES256` / `RS256`，拒绝 `alg: none` 与一切对称算法 —— 后者会让「把 JWKS 里的公钥当成 HMAC 密钥」的经典伪造攻击成立。
+:::
+
+SDK 从 `v0.2.0` 起把这两步绑在一起做完了，下游什么都不用写：
+
+```js
+// scope 含 openid 时，login() 自动发 nonce，
+// handleCallback() 自动验签 + 校验 iss / aud / exp / iat / nonce
+const tokens = await auth.handleCallback();
+```
 
 ## Storage 键
 
@@ -41,6 +78,7 @@ SDK 默认由 `storagePrefix`（默认 `sekai_`）拼出。各仓历史键不一
 | hub / 25ji-sagyo | `sekai_` | `expiresAt → sekai_token_expires_at`、`state → sekai_auth_state` |
 | nightcord | `sekai_pass_` | 无（默认值刚好对得上）|
 | stickers-maker | — | 历史上整包存 `ayaka_auth_state`（JSON），迁移会登出一次 |
+| puzzle-sekai | — | 整包存 `puzzleSekaiAuth`（JSON），PKCE 存 `puzzleSekaiPkce`；迁移会登出一次 |
 
 ```js
 createSekaiAuth({
