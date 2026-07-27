@@ -13,26 +13,24 @@ SEKAI Pass 是 SEKAI 生态的统一身份认证服务（SSO），基于 OAuth 2
 
 ### 1. 注册应用
 
-登录 SEKAI Pass 后打开**开放平台**（`/apps`），自助创建：
+登录后在仪表板点「开放平台」（或直接访问 `/apps`）自助创建，填：
 
 - 应用名称
 - 回调 URL（Redirect URI，可含本地 `http://localhost`）
-- 应用描述、主页（可选）
-- 客户端类型：公开客户端（PKCE）或机密客户端（private_key_jwt）
+- 应用描述
+- 客户端认证方式（见下）
 
-创建后立刻拿到 `client_id`。公共 SPA 用不到 `client_secret`。
+也可以走 `POST /api/apps`。**不需要联系管理员。**
 
-::: warning client_secret 只显示一次
-创建与轮换时才返回，之后服务端不再吐出来。当场复制走。
-:::
+你会拿到 `client_id`。**不会拿到 `client_secret`** —— 本服务只支持两种客户端
+认证方式：
 
-选了 private_key_jwt 的应用还要在应用卡片上点「管理公钥」登记公钥 ——
-**在登记之前这个应用取不到 token**。
+| 方式 | 适用 | 凭据 |
+|---|---|---|
+| `none` | SPA、移动端、任何跑在用户设备上的东西 | 只有 `client_id`，靠 PKCE |
+| `private_key_jwt` | 有服务端、需要证明自己身份的应用 | 你自己生成密钥对，登记**公钥** |
 
-::: tip 以前不是这样的
-开放平台上线之前，注册应用只能请人手工往数据库里 `INSERT`。
-如果你手上还有旧文档写着"联系管理员"，那是过期的。
-:::
+`/oauth/token` 从不接受 `client_secret`。
 
 ### 2. 公共客户端（SPA）— 推荐
 
