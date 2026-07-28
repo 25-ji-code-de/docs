@@ -76,7 +76,3 @@ GET /v2/meta/{uuid}
 - **Nightcord** `file-upload-service.js` 默认 v2，失败回退 legacy
 - **Pass** 头像可走 v2 上传
 - 客户端软上限与 Worker `MAX_UPLOAD_BYTES`（约 1GB）对齐
-
-## 仓库
-
-[25-ji-code-de/storage-worker](https://github.com/25-ji-code-de)（本机 `storage-worker/`）
